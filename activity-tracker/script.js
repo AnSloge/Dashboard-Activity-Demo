@@ -71405,7 +71405,15 @@ Dashboards.board('container', {
           connector: "all-datapoints-connector",
           columnAssignment: [
             {
-            seriesId: "pointSeries",
+            seriesId: "map-series",
+            data: ["latitude", "longitude"]
+          },
+          {
+            seriesId: "line-series",
+            data: ["latitude", "longitude"]
+          },
+          {
+            seriesId: "point-series",
             data: ["latitude", "longitude"]
           }
         ],
@@ -71467,8 +71475,9 @@ Dashboards.board('container', {
              
               // add a trailmap on top of baselayer
               {
-                  name: 'Trail Activity',
+                  name: 'Trail Activity', // can i use column assignment on a map
                   type: 'mapline',
+                  id: "trail-series",
                   data: [{
                       geometry: {
                           type: 'LineString',
@@ -71480,8 +71489,9 @@ Dashboards.board('container', {
               
               // add a mappoint on top of trailmap               
               {
-                  name: 'Location-gps',
+                  name: 'Location-gps', // can i use column assignment on a map?
                   type: 'mappoint',
+                  id: "point-series",
                   data: [
                     {latitude: 0, longitude: 0}
                   ]
@@ -71660,6 +71670,6 @@ Dashboards.board('container', {
   ]
 }, true);
 
-
+console.log("Hello world");
 
 
