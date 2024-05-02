@@ -71312,6 +71312,7 @@ const all_data = [
 
 
 
+
 // this function needs to be replaced by columnAssignment implementation
 
 const getTrailCoordinates = (data) => {
@@ -71328,13 +71329,21 @@ const getTrailCoordinates = (data) => {
       coordinate_data.push([lon2, lat2, cumulativeDistance]); 
     }
   }
+  
   return coordinate_data;
 };
 
 
 
 
-Dashboards.board('container', {
+
+
+
+
+
+(async () => {
+
+let board = await Dashboards.board('container', {
   dataPool: {
       connectors: [{
               id: 'all-datapoints-connector',
@@ -71404,13 +71413,17 @@ Dashboards.board('container', {
           chartConstructor: 'mapChart',
           connector: "all-datapoints-connector",
           columnAssignment: [
-            {
+          {
+            provide: {
+              type: "OpenStreetMap",
+              theme: "OpenTopoMap"
+            },
             seriesId: "map-series",
             data: ["latitude", "longitude"]
           },
           {
             seriesId: "line-series",
-            data: ["latitude", "longitude"]
+            data: ["latitude", "longitude", "cumulativeDistance"]
           },
           {
             seriesId: "point-series",
@@ -71474,27 +71487,37 @@ Dashboards.board('container', {
               },
              
               // add a trailmap on top of baselayer
+              
+              // PROBLEM 1: need to use columnAssignment or something else to display trail. Instead of getTrailCoordinates
+
               {
-                  name: 'Trail Activity', // can i use column assignment on a map
+                  name: 'Trail Activity', // can i use column assignment on 
                   type: 'mapline',
                   id: "trail-series",
                   data: [{
                       geometry: {
                           type: 'LineString',
+                          coordinates: [
+                            ["longitude", "latitude", "cumulativeDistance"]
+                          ],
                           coordinates: getTrailCoordinates(all_data)
                       }
                   }],
-                  showInLegend: false
+                  
               },
               
-              // add a mappoint on top of trailmap               
+              // add a mappoint on top of trailmap   
+              
+              // PROBLEM 2: need to implement logic so that lat & lon updates dynamically
               {
                   name: 'Location-gps', // can i use column assignment on a map?
                   type: 'mappoint',
                   id: "point-series",
-                  data: [
-                    {latitude: 0, longitude: 0}
-                  ]
+                  data: [{
+                    name: "Point on trail",
+                    lat: 60.390301,
+                    lon: 5.315485,
+                    }]
                   
               }
           ]
@@ -71561,115 +71584,115 @@ Dashboards.board('container', {
       {
         renderTo: "dashboard-col-3",
         type: "Highcharts",
-        
         connector: {
-          id: "all-datapoints-connector",
-          columnAssignment: [{
-              seriesId: "elevation-series",
-              data: ["cumulativeDistance", "elevation"]
-            },
-            {
-              seriesId: "speed-series",
-              data: ["cumulativeDistance", "speed"]
-            },
-            {
-              seriesId: "heartrate-series",
-              data: ["cumulativeDistance", "hr"]
-            },
-          ]
+            id: "all-datapoints-connector",
+            columnAssignment: [{
+                    seriesId: "elevation-series",
+                    data: ["cumulativeDistance", "elevation"]
+                },
+                {
+                    seriesId: "speed-series",
+                    data: ["cumulativeDistance", "speed"]
+                },
+                {
+                    seriesId: "heartrate-series",
+                    data: ["cumulativeDistance", "hr"]
+                },
+            ]
         },
         chartOptions: {
-          title: {
-            text: ''
-          },
-          xAxis: [{
             title: {
-              text: 'Distance (km)'
+                text: ''
             },
-          }],
-          yAxis: [{
-              title: {
-                text: 'Elevation (m)'
-              },
-              opposite: false,
-              labels: {
-                enabled: true,
-                formatter: function() {
-                  return this.value + " m"
+            
+            yAxis: [{
+                    title: {
+                        text: 'Elevation (m)'
+                    },
+                    opposite: false,
+                    labels: {
+                        enabled: true,
+                        formatter: function() {
+                            return this.value + " m"
+                        }
+                    }
+                },
+                {
+                    title: {
+                        text: 'Heart Rate (bpm)'
+                    },
+                    opposite: true,
+                    labels: {
+                        enabled: true,
+                        formatter: function() {
+                            return this.value + ' bpm';
+                        }
+                    },
+                    offset: 80,
+                    gridLineWidth: 0,
+                    lineWidth: 1,
+                    lineColor: '#ff0000',
+                },
+                {
+                    title: {
+                        text: 'Speed (km/h)'
+                    },
+                    opposite: true,
+                    labels: {
+                        enabled: true,
+                        formatter: function() {
+                            return this.value + ' km/h';
+                        }
+                    },
+                    offset: 0,
+                    gridLineWidth: 0,
+                    lineWidth: 1,
+                    lineColor: '#0000ff',
                 }
-              }
-            },
-            {
-              title: {
-                text: 'Heart Rate (bpm)'
-              },
-              opposite: true,
-              labels: {
-                enabled: true,
+            ],
+            tooltip: {
+                shared: true,
+                crosshairs: true,
                 formatter: function() {
-                  return this.value + ' bpm';
+                    let tooltip = '<b>Distance:</b> ' + this.x.toFixed(2) + ' km<br/>';
+                    this.points.forEach(function(point) {
+                        tooltip += '<b>' + point.series.name + '</b>: ' + point.y.toFixed(2) + ' ' + point.series.options.tooltipValueSuffix + '<br/>';
+                    });
+                    return tooltip;
                 }
-              },
-              offset: 80,
-              gridLineWidth: 0,
-              lineWidth: 1,
-              lineColor: '#ff0000',
             },
-            {
-              title: {
-                text: 'Speed (km/h)'
-              },
-              opposite: true,
-              labels: {
-                enabled: true,
-                formatter: function() {
-                  return this.value + ' km/h';
-                }
-              },
-              offset: 0,
-              gridLineWidth: 0,
-              lineWidth: 1,
-              lineColor: '#0000ff',
-            }
-          ],
-          tooltip: {
-            shared: true,
-            crosshairs: true,
-            formatter: function() {
-              let tooltip = '<b>Distance:</b> ' + this.x.toFixed(2) + ' km<br/>';
-              this.points.forEach(function(point) {
-                tooltip += '<b>' + point.series.name + '</b>: ' + point.y.toFixed(2) + ' ' + point.series.options.tooltipValueSuffix + '<br/>';
-              });
-              return tooltip;
-            }
-          },
-          
-          series: [{
-              name: "Elevation",
-              id: "elevation-series",
-              yAxis: 0,
-              type: 'area',
-              tooltipValueSuffix: 'm'
-            },
-            {
-              name: "Speed",
-              id: "speed-series",
-              yAxis: 2,
-              tooltipValueSuffix: 'km/h'
-            },
-            {
-              name: "Heart Rate",
-              id: "heartrate-series",
-              yAxis: 1,
-              tooltipValueSuffix: 'bpm'
-            },
-          ]
+            series: [{
+                    name: "Elevation",
+                    id: "elevation-series",
+                    yAxis: 0,
+                    type: 'area',
+                    tooltipValueSuffix: 'm'
+                },
+                {
+                    name: "Speed",
+                    id: "speed-series",
+                    yAxis: 2,
+                    tooltipValueSuffix: 'km/h'
+                },
+                {
+                    name: "Heart Rate",
+                    id: "heartrate-series",
+                    yAxis: 1,
+                    tooltipValueSuffix: 'bpm'
+                },
+               
+            ]
         }
-      }
+    }
           
   ]
 }, true);
 
-console.log("Hello world");
+
+let locationGPS = board.mountedComponents[0].options.chartOptions.series[2]
+
+
+
+})();
 
 
